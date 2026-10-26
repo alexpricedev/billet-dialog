@@ -399,6 +399,14 @@ bun run check   # tsc --noEmit && bun test
 bun run build   # dist/index.js + .d.ts + styles.css
 ```
 
+`dist/` is committed, not gitignored. It is what makes a git dependency
+(`github:alexpricedev/billet-dialog#<sha>`) install and work without a build
+step on the consumer's side — Bun blocks lifecycle scripts by default, and a
+`prepare` that shells out to `tsc` would need this package's devDependencies,
+which a dependency install does not get. **Run `bun run build` and commit the
+result in the same commit as any `src/` change**, or a consumer pinned to that
+SHA gets stale code.
+
 ## License
 
 MIT

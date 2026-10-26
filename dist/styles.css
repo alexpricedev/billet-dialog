@@ -1,0 +1,312 @@
+/*
+ * @alexpricedev/billet-dialog — scoped styles.
+ *
+ * Every selector starts with [data-bd-root]. No bare element selectors — the
+ * dialog's own buttons carry their base styles so a host app's global `button`
+ * rule neither leaks in nor gets fought. The one exception is the scroll lock
+ * at the bottom of this file, which has to reach the document element and is
+ * conditional on one of our dialogs being modal.
+ *
+ * Two states matter and they look different on purpose:
+ *
+ *   [data-bd-root]:modal              showModal() ran — top layer, ::backdrop,
+ *                                     the browser's focus trap, Escape, inert
+ *                                     page behind.
+ *   [data-bd-root][open]:not(:modal)  the `open` attribute alone, which is what
+ *                                     a server render leaves behind until
+ *                                     upgradeDialogs() runs, or forever if the
+ *                                     page ships no JavaScript. Renders in flow
+ *                                     as a panel.
+ *
+ * The second is not a fallback that looks broken — it is the no-JS design, and
+ * it is why a server template can render one of these at all.
+ *
+ * Theming: re-declare the tokens below on [data-bd-root], or on any ancestor
+ * (`:root` in your own stylesheet works, since custom properties inherit).
+ */
+
+[data-bd-root] {
+  --bd-surface: #121114;
+  --bd-border: #2c2934;
+  --bd-fg: #ece9e2;
+  --bd-muted: #b5b0ba;
+  --bd-eyebrow: #b5b0ba;
+  --bd-accent: #e5b35b;
+  --bd-accent-hover: #f0c87e;
+  --bd-accent-fg: #0c0b0e;
+  --bd-danger: #f0776b;
+  --bd-danger-hover: #f39288;
+  --bd-danger-fg: #0c0b0e;
+  --bd-scrim: rgba(0, 0, 0, 0.7);
+  --bd-font: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --bd-radius: 14px;
+  --bd-radius-sm: 8px;
+  --bd-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+  --bd-max-w-sm: 26rem;
+  --bd-max-w-md: 32rem;
+  --bd-max-w-lg: 44rem;
+  --bd-max-w-xl: 68rem;
+  --bd-pad: 1.75rem;
+  --bd-gap: 0.5rem;
+
+  /* Reset the UA dialog box; the parts below own the padding. */
+  box-sizing: border-box;
+  margin: auto;
+  padding: 0;
+  font-family: var(--bd-font);
+  color: var(--bd-fg);
+  background: var(--bd-surface);
+  border: 1px solid transparent;
+  border-radius: var(--bd-radius);
+  overflow: hidden;
+}
+
+[data-bd-root] *,
+[data-bd-root] *::before,
+[data-bd-root] *::after {
+  box-sizing: border-box;
+}
+
+[data-bd-root][open] {
+  display: flex;
+  flex-direction: column;
+}
+
+/* `showModal()` moves focus to the dialog itself when nothing inside it has
+   `autofocus`, and a host's `:focus-visible` rule then draws a ring round the
+   whole panel. A dialog is a container, not a control: the ring conveys nothing
+   actionable and reads as a mistake. The controls inside keep theirs, which is
+   where a keyboard user needs it. */
+[data-bd-root]:focus,
+[data-bd-root]:focus-visible {
+  outline: none;
+}
+
+[data-bd-root]::backdrop {
+  background: var(--bd-scrim);
+}
+
+[data-bd-root]:modal {
+  width: calc(100% - 2.5rem);
+  max-width: var(--bd-max-w-md);
+  max-height: calc(100dvh - 4rem);
+  border-color: var(--bd-border);
+  box-shadow: var(--bd-shadow);
+}
+
+/* Sizes cap the modal form only — in flow the container decides. */
+[data-bd-root][data-bd-size="sm"]:modal {
+  max-width: var(--bd-max-w-sm);
+}
+[data-bd-root][data-bd-size="md"]:modal {
+  max-width: var(--bd-max-w-md);
+}
+[data-bd-root][data-bd-size="lg"]:modal {
+  max-width: var(--bd-max-w-lg);
+}
+[data-bd-root][data-bd-size="xl"]:modal {
+  max-width: var(--bd-max-w-xl);
+}
+
+/* In flow: full width of its container, separated from what it interrupts, and
+   bordered rather than floated, because there is no backdrop to lift it off.
+   No shadow either: in the page it is a panel like any other. The shadow
+   belongs to the promoted dialog above the scrim. */
+[data-bd-root][open]:not(:modal) {
+  position: static;
+  width: 100%;
+  max-width: none;
+  margin-block: 1.5rem;
+  border-color: var(--bd-border);
+  box-shadow: none;
+}
+
+/* ---------------------------------------------------------------- structure */
+
+[data-bd-root] .bd-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: var(--bd-pad) var(--bd-pad) 1rem;
+}
+
+/* A dialog with a heading block and actions and *no body* — a confirm — has
+   nothing for the header's bottom padding to separate. It sits directly on the
+   footer's own top padding and the two read as one oversized gap, pushing the
+   buttons away from the sentence they belong to. Drop it, so the space between
+   the last line of the heading and the actions is the footer's alone. */
+[data-bd-root] .bd-header:has(+ .bd-footer) {
+  padding-bottom: 0;
+}
+
+[data-bd-root] .bd-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+/* The dialog's category, above its title and out of the accessible name —
+   `aria-labelledby` points at the title alone. */
+[data-bd-root] .bd-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bd-eyebrow);
+}
+
+[data-bd-root] .bd-title {
+  font-family: inherit;
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 0;
+  color: var(--bd-fg);
+}
+
+[data-bd-root] .bd-description {
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0;
+  color: var(--bd-muted);
+}
+
+[data-bd-root] .bd-description[hidden] {
+  display: none;
+}
+
+/* Layout only, deliberately. A host that has a button system puts its own
+   classes on this control alongside `bd-close`, and two single-class rules are
+   settled by stylesheet order rather than specificity — so a visual default
+   here would silently win or lose depending on import order. The confirm
+   prompt this package builds has no close button, so nothing needs one. */
+[data-bd-root] .bd-close {
+  flex-shrink: 0;
+  margin-inline-start: auto;
+}
+
+/* The body is a scroll container, so its content is clipped at its own top
+   edge — and that edge is exactly where a dialog's first row lands. The
+   header's bottom padding cannot help: it sits *outside* the scroll box. So a
+   first child that overflows upward (a hover lift, a `:focus-visible` outline
+   offset outside its card) loses its top. This inset is the room it needs.
+
+   It is additive rather than moved out of the header, because the header's
+   bottom padding is the gap for a dialog with *no* body, and those must not
+   move. `.bd-body` is `:last-child` only when there is no footer, and a
+   footerless dialog needs its own bottom padding for the same reason. */
+[data-bd-root] .bd-body {
+  padding: 0.75rem var(--bd-pad) 0;
+  overflow-y: auto;
+  flex: 1 1 auto;
+}
+
+[data-bd-root] .bd-body:last-child {
+  padding-bottom: var(--bd-pad);
+}
+
+[data-bd-root] .bd-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--bd-gap);
+  padding: 1.25rem var(--bd-pad) var(--bd-pad);
+}
+
+[data-bd-root] .bd-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ------------------------------------------------------- the confirm prompt */
+
+[data-bd-root] .bd-cancel,
+[data-bd-root] .bd-confirm {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--bd-radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+
+[data-bd-root] .bd-cancel {
+  background: transparent;
+  border-color: var(--bd-border);
+  color: var(--bd-muted);
+}
+
+[data-bd-root] .bd-cancel:hover,
+[data-bd-root] .bd-cancel:focus {
+  background: var(--bd-surface);
+  color: var(--bd-fg);
+}
+
+[data-bd-root] .bd-confirm {
+  background: var(--bd-accent);
+  color: var(--bd-accent-fg);
+}
+
+[data-bd-root] .bd-confirm:hover,
+[data-bd-root] .bd-confirm:focus {
+  background: var(--bd-accent-hover);
+}
+
+[data-bd-root] .bd-confirm.is-danger {
+  background: var(--bd-danger);
+  color: var(--bd-danger-fg);
+}
+
+[data-bd-root] .bd-confirm.is-danger:hover,
+[data-bd-root] .bd-confirm.is-danger:focus {
+  background: var(--bd-danger-hover);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-bd-root] .bd-cancel,
+  [data-bd-root] .bd-confirm {
+    transition: none;
+  }
+}
+
+/* -------------------------------------------------------------- scroll lock */
+
+/* `showModal()` makes the page inert — it cannot be clicked, focused or read by
+   a screen reader — but it does NOT stop it scrolling, so a wheel over the
+   backdrop still slides the document under the scrim while the dialog stays
+   put. `.bd-body` is the thing meant to scroll, and it already does.
+
+   `:modal` rather than `[open]` is the whole correctness of this rule: the
+   in-flow server-rendered panel is part of the document and must scroll with
+   it, so the lock has to arrive with the promotion and not with the markup.
+
+   This is the one selector that reaches outside the dialog, and it is still
+   gated on one of ours being modal, so it can do nothing to a page that is not
+   showing one. It does not reset the offset and it does not block
+   `window.scrollTo`. */
+:root:has([data-bd-root]:modal) {
+  overflow: hidden;
+  /* Where scrollbars take layout space, removing one widens the page by ~15px
+     and everything behind the scrim jumps sideways as the dialog opens. The
+     gutter holds that width. It is free where scrollbars are overlay — the
+     property is defined to do nothing there — so this costs macOS nothing and
+     fixes Windows. */
+  scrollbar-gutter: stable;
+}

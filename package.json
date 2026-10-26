@@ -21,7 +21,6 @@
   ],
   "scripts": {
     "build": "bun build ./src/index.ts --outdir dist --target browser --format esm && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
-    "prepare": "bun run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
     "check": "tsc --noEmit && bun test",
