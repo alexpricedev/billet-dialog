@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.1]
+
+### Fixed
+
+- `wireDialogLinks()` read a **fragment on the href as a redirect** and fell through to the plain navigation. A fragment is never sent to the server, so `response.url` comes back without one — and a dialog route very often carries one, because `/library?add=1#add-product` is what scrolls the in-flow panel into view on a page with no JavaScript. Every such link navigated instead of opening in place. The fragment is now dropped from both sides of that comparison, and kept in the address bar.
+
 ## [0.3.0]
 
 ### Added

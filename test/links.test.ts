@@ -277,6 +277,34 @@ describe("wireDialogLinks — opening", () => {
     cleanup();
   });
 
+  test("a fragment on the href is not read as a redirect", async () => {
+    // `/library?add=1#add-product` is the shape of a dialog route that also has
+    // to work without JavaScript: the fragment is what scrolls the in-flow
+    // panel into view. A fragment is never sent to the server, so the response
+    // comes back without one — compared raw, every such link would fall
+    // through to the navigation.
+    const fetch = mock(() =>
+      Promise.resolve(
+        html(page(DIALOG), { url: "https://example.test/library?add=1" }),
+      ),
+    );
+    const cleanup = wireDialogLinks({
+      fetch: fetch as unknown as typeof globalThis.fetch,
+    });
+    document.body.innerHTML =
+      '<a id="l" href="/library?add=1#add-product" data-bd-link>Add</a>';
+
+    click(document.getElementById("l") as Element);
+    await settle();
+
+    expect(assigned).toHaveLength(0);
+    expect(document.querySelector("dialog[data-bd-root]")).not.toBeNull();
+    expect(window.location.pathname + window.location.search).toBe(
+      "/library?add=1",
+    );
+    cleanup();
+  });
+
   test("a rejected fetch falls through to the navigation", async () => {
     const { cleanup } = await open(() => Promise.reject(new Error("offline")));
 

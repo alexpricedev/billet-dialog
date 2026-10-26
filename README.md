@@ -296,6 +296,8 @@ wireDialogLinks();
 
 `data-bd-link` is the opt-in, and it has to be: nothing can be known about a URL without fetching it, so the host declares which of its links are dialog routes.
 
+A fragment on the href is fine and is often wanted — `/library?add=1#add-product` is what scrolls the in-flow panel into view on a page with no JavaScript. It is kept in the address bar and ignored when deciding whether the response landed where it was asked to.
+
 ### Every failure path is the plain navigation
 
 A non-ok response, a redirect that landed somewhere else, a body with no `dialog[data-bd-root][open]` in it, a fetch that threw — each one falls through to `location.assign(href)`. This can only ever be faster than following the link, never a dead end. The same holds for the link itself: it stays a real link to a real URL that really renders the dialog server-side, so a page with no JavaScript, a middle click, a Cmd-click, a `target`, a `download` and a cross-origin `href` are all handed straight back to the browser.

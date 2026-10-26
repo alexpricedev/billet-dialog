@@ -1,6 +1,6 @@
 {
   "name": "@alexpricedev/billet-dialog",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Accessible dialogs for the server-rendered web: a confirm prompt for destructive actions, and progressive-enhancement upgrading for dialogs your templates render. Native <dialog>, zero dependencies, scoped CSS tokens.",
   "type": "module",
   "module": "dist/index.js",

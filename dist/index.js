@@ -268,6 +268,11 @@ function wireDialogLinks({
     view.location.assign(href);
   };
   const state = () => view.history.state ?? null;
+  const withoutHash = (value) => {
+    const url = new URL(value, view.location.href);
+    url.hash = "";
+    return url.href;
+  };
   const adopt = (found, source, href) => {
     current?.close(true);
     const dialog = doc.adoptNode(found);
@@ -322,8 +327,7 @@ function wireDialogLinks({
       });
       if (!response.ok)
         return navigate(href);
-      const landed = response.url ? new URL(response.url, view.location.href).href : href;
-      if (landed !== new URL(href, view.location.href).href) {
+      if (withoutHash(response.url || href) !== withoutHash(href)) {
         return navigate(href);
       }
       const source = new DOMParser().parseFromString(await response.text(), "text/html");

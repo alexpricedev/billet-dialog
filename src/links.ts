@@ -78,6 +78,13 @@ export function wireDialogLinks({
   const state = (): LinkState | null =>
     (view.history.state as LinkState | null) ?? null;
 
+  /** An absolute URL with its fragment removed. */
+  const withoutHash = (value: string): string => {
+    const url = new URL(value, view.location.href);
+    url.hash = "";
+    return url.href;
+  };
+
   const adopt = (
     found: HTMLDialogElement,
     source: Document,
@@ -166,10 +173,14 @@ export function wireDialogLinks({
       // A redirect that landed somewhere else is the server saying this URL is
       // not the dialog any more — a sign-in wall, a deleted row. Follow it for
       // real rather than showing whatever its page happened to contain.
-      const landed = response.url
-        ? new URL(response.url, view.location.href).href
-        : href;
-      if (landed !== new URL(href, view.location.href).href) {
+      //
+      // The fragment is dropped from both sides first. A dialog route very
+      // often carries one — `/library?add=1#add-product` is what scrolls the
+      // in-flow panel into view without JavaScript — and a fragment is never
+      // sent to the server, so `response.url` comes back without it. Compare
+      // the two raw and every such link reads as a redirect and falls through
+      // to the navigation this file exists to avoid.
+      if (withoutHash(response.url || href) !== withoutHash(href)) {
         return navigate(href);
       }
 
