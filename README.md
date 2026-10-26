@@ -292,6 +292,10 @@ Every value is a token declared on `[data-bd-root]`. Re-declare the ones you car
 }
 ```
 
+Every value in the stylesheet is a token. That is the contract: a host should be able to make this dialog match the rest of its app by re-declaring tokens and writing **no selectors of its own**. If you find yourself adding a rule in your app to match your design system, that is a missing token here — open an issue rather than starting a second stylesheet.
+
+### Colour
+
 | Token | Default | What it colours |
 |---|---|---|
 | `--bd-surface` | `#121114` | Panel background |
@@ -299,14 +303,49 @@ Every value is a token declared on `[data-bd-root]`. Re-declare the ones you car
 | `--bd-fg` | `#ece9e2` | Title, cancel button on hover |
 | `--bd-muted` | `#b5b0ba` | Description, cancel button at rest |
 | `--bd-eyebrow` | `#b5b0ba` | The line above the title |
-| `--bd-accent` / `--bd-accent-hover` / `--bd-accent-fg` | `#e5b35b` / `#f0c87e` / `#0c0b0e` | Confirm button, non-danger |
-| `--bd-danger` / `--bd-danger-hover` / `--bd-danger-fg` | `#f0776b` / `#f39288` / `#0c0b0e` | Confirm button, danger |
+| `--bd-accent` / `-hover` / `-fg` | `#e5b35b` / `#f0c87e` / `#0c0b0e` | Confirm button, non-danger |
+| `--bd-danger` / `-hover` / `-fg` | `#f0776b` / `#f39288` / `#0c0b0e` | Confirm button, danger |
 | `--bd-scrim` | `rgba(0,0,0,0.7)` | `::backdrop` |
-| `--bd-font` | system stack | Everything |
-| `--bd-radius` / `--bd-radius-sm` | `14px` / `8px` | Panel / buttons |
-| `--bd-shadow` | `0 12px 40px rgba(0,0,0,0.4)` | Panel |
-| `--bd-max-w-sm` … `-xl` | `26rem` / `32rem` / `44rem` / `68rem` | The four `data-bd-size` caps |
-| `--bd-pad` / `--bd-gap` | `1.75rem` / `0.5rem` | Panel padding, button gap |
+
+### Typography
+
+| Token | Default |
+|---|---|
+| `--bd-font` | system stack — everything, unless overridden below |
+| `--bd-title-font` / `-size` / `-weight` / `-leading` / `-tracking` | `var(--bd-font)` / `1.25rem` / `600` / `1.3` / `normal` |
+| `--bd-description-size` / `-leading` | `0.9375rem` / `1.5` |
+| `--bd-eyebrow-size` / `-weight` / `-tracking` | `0.75rem` / `600` / `0.06em` |
+
+### Form
+
+| Token | Default |
+|---|---|
+| `--bd-radius` | `14px` — the panel |
+| `--bd-shadow` | `0 12px 40px rgba(0,0,0,0.4)` — the promoted panel only |
+| `--bd-border-width` | `1px` |
+| `--bd-max-w-sm` … `-xl` | `26rem` / `32rem` / `44rem` / `68rem` — the four `data-bd-size` caps |
+| `--bd-viewport-inset` / `-block` | `1.25rem` / `2rem` — space kept clear around the promoted dialog |
+
+### Spacing
+
+| Token | Default | Where |
+|---|---|---|
+| `--bd-pad` | `1.75rem` | Inline padding everywhere, block padding at the panel's outer edges |
+| `--bd-header-gap` | `1rem` | Heading block → close control |
+| `--bd-heading-gap` | `0.25rem` | Eyebrow → title → description |
+| `--bd-header-pad-bottom` | `1rem` | Under the header. Dropped to zero when the footer follows directly |
+| `--bd-body-inset` | `0.75rem` | Above the body, inside its scroll box |
+| `--bd-footer-pad-top` | `1.25rem` | Above the footer |
+| `--bd-gap` | `0.5rem` | Between the footer's controls |
+| `--bd-flow-margin` | `1.5rem` | Around the in-flow panel, which has no backdrop to separate it |
+
+### The confirm prompt's buttons
+
+| Token | Default |
+|---|---|
+| `--bd-btn-font` / `-size` / `-weight` | `var(--bd-font)` / `14px` / `600` |
+| `--bd-btn-radius` / `-pad` / `-border-width` | `8px` / `8px 16px` / `1px` |
+| `--bd-btn-duration` | `150ms` |
 
 The stylesheet has no `:root` token rules and no bare element selectors. Both confirm buttons carry their own base styles, so a host app's global `button` rule neither leaks in nor gets fought.
 

@@ -15,6 +15,7 @@ The package now covers every dialog on a server-rendered site, not just the conf
 - Four width caps via `data-bd-size` (`sm`/`md`/`lg`/`xl`), applied to the promoted dialog only — in flow the container decides.
 - A styled in-flow state, `[data-bd-root][open]:not(:modal)`: what a server-rendered dialog looks like before the upgrade runs, and forever on a page with no JavaScript.
 - A scroll lock, `:root:has([data-bd-root]:modal)`. `showModal()` makes the page inert but does not stop it scrolling.
+- A full token set for typography, spacing and the confirm prompt's buttons — `--bd-title-*`, `--bd-description-*`, `--bd-eyebrow-*`, `--bd-header-gap`, `--bd-heading-gap`, `--bd-header-pad-bottom`, `--bd-body-inset`, `--bd-footer-pad-top`, `--bd-flow-margin`, `--bd-viewport-inset*`, `--bd-border-width`, `--bd-btn-*`. Every value in the stylesheet is now a token, so a host can match its own design system without writing a selector. That is the contract: a rule you have to add in your app is a missing token here.
 - `bun run build` — the package now ships `dist/` with declarations rather than raw TypeScript, so a consumer's `tsc --noEmit` no longer typechecks our sources.
 
 ### Changed
