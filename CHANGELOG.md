@@ -8,7 +8,7 @@ The package now covers every dialog on a server-rendered site, not just the conf
 
 ### Added
 
-- `upgradeDialogs(root?)` — promotes every `<dialog data-bd-root open>` a server template rendered, and wires `data-bd-close-href`. A close href pointing at the *same document* drops the query parameter with `history.replaceState` instead of reloading the page behind the dialog; a different document still navigates, with the dialog held open until it lands.
+- `upgradeDialogs(root?)` — promotes every `<dialog data-bd-root open>` a server template rendered, and wires `data-bd-close-href`. `root` may be the dialog itself, for a framework component that holds the ref. A close href pointing at the *same document* drops the query parameter with `history.replaceState` instead of reloading the page behind the dialog; a different document still navigates, with the dialog held open until it lands.
 - `dialogAttrs()` and `BD` — the markup contract as values, so a host framework's template cannot drift from the stylesheet.
 - `activateDialog()` and `claimAutofocus()` — the promotion and dismissal wiring on its own, for a framework component that manages `open` itself.
 - Content-dialog structure in the stylesheet: `.bd-header`, `.bd-heading`, `.bd-eyebrow`, `.bd-title`, `.bd-description`, `.bd-close`, `.bd-body`, `.bd-footer`, `.bd-sr-only`.

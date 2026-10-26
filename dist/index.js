@@ -239,8 +239,13 @@ function wireConfirmForms(dialog, opts = {}) {
   return () => root.removeEventListener("submit", onSubmit);
 }
 // src/upgrade.ts
+var SELECTOR = "dialog[data-bd-root][open]";
+var targets = (root) => {
+  const found = Array.from(root.querySelectorAll(SELECTOR));
+  return root instanceof Element && root.matches(SELECTOR) ? [root, ...found] : found;
+};
 function upgradeDialogs(root = document) {
-  const cleanups = Array.from(root.querySelectorAll("dialog[data-bd-root][open]")).map((dialog) => {
+  const cleanups = targets(root).map((dialog) => {
     const href = dialog.dataset.bdCloseHref;
     const view = dialog.ownerDocument.defaultView ?? window;
     const target = href ? new URL(href, view.location.href) : null;

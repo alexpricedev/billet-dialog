@@ -326,6 +326,8 @@ Gate `[data-confirm]` forms through the shared instance. Returns the unwire func
 
 Promote every `<dialog data-bd-root open>` under `root` (default `document`) and wire its `data-bd-close-href`. Returns a function that unbinds the listeners and closes what it promoted.
 
+`root` may be the dialog itself, which is the natural call from a framework component that has just rendered one and holds the ref — `querySelectorAll` does not match the node it is called on, so that case is handled explicitly.
+
 ### `dialogAttrs(opts?): Record<string, string>`
 
 The attributes for a server-rendered dialog. `opts.size`, `opts.closeHref`, `opts.disableOverlayClose`.

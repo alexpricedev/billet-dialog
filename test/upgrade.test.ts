@@ -237,3 +237,34 @@ describe("upgradeDialogs", () => {
     expect(() => upgradeDialogs(document)()).not.toThrow();
   });
 });
+
+describe("upgradeDialogs(dialog)", () => {
+  test("upgrades the node it is handed, not only that node's descendants", () => {
+    // `querySelectorAll` does not match the node it is called on, so a
+    // framework component holding a ref to the dialog it just rendered would
+    // otherwise pass it in and get nothing.
+    const dialog = openAt("/library?add=1", 'data-bd-close-href="/library"');
+
+    const cleanup = upgradeDialogs(dialog);
+    pressEscape(dialog);
+
+    expect(url()).toBe("/library");
+    expect(dialog.open).toBe(false);
+    cleanup();
+  });
+
+  test("does not upgrade it twice when it is also inside the root", () => {
+    const dialog = openAt("/library?add=1", 'data-bd-close-href="/library"');
+
+    const cleanup = upgradeDialogs(document);
+    const second = upgradeDialogs(dialog);
+
+    // Two activations means two cancel listeners, and the second would navigate
+    // again after the first already dropped the parameter.
+    pressEscape(dialog);
+    expect(url()).toBe("/library");
+
+    second();
+    cleanup();
+  });
+});

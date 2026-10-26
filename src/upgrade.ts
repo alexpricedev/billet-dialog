@@ -1,5 +1,21 @@
 import { activateDialog } from "./activate";
 
+const SELECTOR = "dialog[data-bd-root][open]";
+
+/**
+ * Every dialog `upgradeDialogs` would act on, including `root` itself.
+ *
+ * Passing the dialog *is* the natural call for a framework component that has
+ * just rendered one and holds the ref — and `querySelectorAll` does not match
+ * the node it is called on, so without this that call finds nothing.
+ */
+const targets = (root: ParentNode): HTMLDialogElement[] => {
+  const found = Array.from(root.querySelectorAll<HTMLDialogElement>(SELECTOR));
+  return root instanceof Element && root.matches(SELECTOR)
+    ? [root as HTMLDialogElement, ...found]
+    : found;
+};
+
 /**
  * Promote every `<dialog data-bd-root open>` in `root`, once, at page load.
  *
@@ -17,9 +33,7 @@ import { activateDialog } from "./activate";
  * promoted.
  */
 export function upgradeDialogs(root: ParentNode = document): () => void {
-  const cleanups = Array.from(
-    root.querySelectorAll<HTMLDialogElement>("dialog[data-bd-root][open]"),
-  ).map((dialog) => {
+  const cleanups = targets(root).map((dialog) => {
     const href = dialog.dataset.bdCloseHref;
     const view = dialog.ownerDocument.defaultView ?? window;
 
