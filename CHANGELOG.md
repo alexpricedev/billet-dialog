@@ -18,12 +18,15 @@ The package now covers every dialog on a server-rendered site, not just the conf
 - A full token set for typography, spacing and the confirm prompt's buttons — `--bd-title-*`, `--bd-description-*`, `--bd-eyebrow-*`, `--bd-header-gap`, `--bd-heading-gap`, `--bd-header-pad-bottom`, `--bd-body-inset`, `--bd-footer-pad-top`, `--bd-flow-margin`, `--bd-viewport-inset*`, `--bd-border-width`, `--bd-btn-*` (including `--bd-btn-min-height`, for a host whose buttons are a control height rather than padding). Every value in the stylesheet is now a token, so a host can match its own design system without writing a selector. That is the contract: a rule you have to add in your app is a missing token here.
 - `bun run build` — the package now ships `dist/` with declarations rather than raw TypeScript, so a consumer's `tsc --noEmit` no longer typechecks our sources.
 
+- `data-confirm` may go on a submit **button** rather than the form, for a form that does more than one thing — a table of rows with one Save and a trash on each row. The approved resubmit goes through `requestSubmit(submitter)`, so the button's `name`/`value` survive it.
+
 ### Changed
 
 - **The dialog is a native `<dialog>` promoted with `showModal()`**, not a `<div>` overlay. The focus trap, the top layer, the `::backdrop`, Escape and the inert page behind it are now the browser's. The hand-rolled Tab cycle is gone — it toggled between exactly two buttons, which is wrong the moment a dialog holds a form field.
 - `instance.element` is the `<dialog>` rather than an overlay wrapper.
 - `.bd-message` is now `.bd-description`, and `.bd-actions` is now `.bd-footer` — one vocabulary for both kinds of dialog.
 - The panel's own `.bd-dialog` class is gone; `[data-bd-root]` is the panel.
+- `data-confirmed` is removed again as soon as the approved resubmit has been dispatched. A form gated per button stays on the page, and the marker would have waved every later press through.
 - `is-open` is gone. Open state is the `open` attribute, as the platform has it.
 
 ### Removed

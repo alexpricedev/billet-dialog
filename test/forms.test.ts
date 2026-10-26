@@ -75,7 +75,33 @@ describe("wireConfirmForms", () => {
     await Promise.resolve();
 
     expect(requestSubmit).toHaveBeenCalledTimes(1);
-    expect(form.dataset.confirmed).toBe("true");
+    // The marker is set for the resubmit and cleared straight after it, so a
+    // form still on the page asks again next time rather than waving the
+    // second press through. `requestSubmit` is a spy here, so nothing
+    // navigates and the cleared state is observable.
+    expect(form.dataset.confirmed).toBeUndefined();
+  });
+
+  test("lets the approved resubmit through without a second prompt", async () => {
+    wire();
+    const host = document.createElement("div");
+    host.innerHTML = `<form method="post" action="/x" ${CONFIRM_ATTRS}>
+      <button type="submit">Delete</button></form>`;
+    document.body.append(host);
+    const form = host.querySelector("form") as HTMLFormElement;
+    // What the real `requestSubmit` does: dispatch `submit` again, from inside
+    // `submitForm`, while the marker is set.
+    Object.defineProperty(form, "requestSubmit", {
+      value: () => submit(form),
+    });
+
+    submit(form);
+    confirmBtn().click();
+    await Promise.resolve();
+
+    // One prompt, not two: the second pass saw the marker and returned.
+    expect(root().open).toBe(false);
+    expect(form.dataset.confirmed).toBeUndefined();
   });
 
   test("does not submit when cancelled", async () => {
@@ -186,5 +212,107 @@ describe("wireConfirmForms", () => {
     await Promise.resolve();
 
     expect(requestSubmit).not.toHaveBeenCalled();
+  });
+});
+
+describe("gating one button rather than the whole form", () => {
+  /**
+   * The case this exists for: a table of rows that is one form with one Save,
+   * so nothing typed is lost, and a trash on every row submitting the same
+   * form with its own `name`/`value`. Gating the form would gate Save too.
+   */
+  const setupRowForm = () => {
+    const host = document.createElement("div");
+    host.innerHTML = `
+      <form method="post" action="/work/save">
+        <input name="rate" value="23" />
+        <button type="submit" name="remove" value="line-3"
+                data-confirm="The line goes."
+                data-confirm-title="Remove this line?"
+                data-confirm-label="Remove">Remove</button>
+        <button type="submit">Save</button>
+      </form>`;
+    document.body.append(host);
+    const form = host.querySelector("form") as HTMLFormElement;
+    const buttons = Array.from(host.querySelectorAll("button"));
+    const requestSubmit = mock((_submitter?: HTMLElement) => {});
+    Object.defineProperty(form, "requestSubmit", { value: requestSubmit });
+    return {
+      form,
+      remove: buttons[0] as HTMLButtonElement,
+      save: buttons[1] as HTMLButtonElement,
+      requestSubmit,
+    };
+  };
+
+  const submitWith = (form: HTMLFormElement, submitter: HTMLElement | null) => {
+    const event = new Event("submit", { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "submitter", { value: submitter });
+    return form.dispatchEvent(event);
+  };
+
+  test("prompts when the gated button is the submitter", async () => {
+    wire();
+    const { form, remove, requestSubmit } = setupRowForm();
+
+    const notCancelled = submitWith(form, remove);
+
+    expect(notCancelled).toBe(false);
+    expect(root().open).toBe(true);
+    expect(document.querySelector(".bd-title")?.textContent).toBe(
+      "Remove this line?",
+    );
+    expect(confirmBtn().textContent).toBe("Remove");
+
+    confirmBtn().click();
+    await Promise.resolve();
+
+    expect(requestSubmit).toHaveBeenCalledTimes(1);
+    // With the submitter, or the approved pass posts as a plain Save and the
+    // row is never removed.
+    expect(requestSubmit).toHaveBeenCalledWith(remove);
+  });
+
+  test("leaves the form's other submit button alone", () => {
+    wire();
+    const { form, save } = setupRowForm();
+
+    const notCancelled = submitWith(form, save);
+
+    expect(notCancelled).toBe(true);
+    expect(root().open).toBe(false);
+  });
+
+  test("a form with no data-confirm and no gated submitter is untouched", () => {
+    wire();
+    const { form } = setupRowForm();
+
+    expect(submitWith(form, null)).toBe(true);
+    expect(root().open).toBe(false);
+  });
+
+  test("the button's copy wins over the form's", async () => {
+    wire();
+    const host = document.createElement("div");
+    host.innerHTML = `
+      <form method="post" action="/x" data-confirm="form copy"
+            data-confirm-title="Form?">
+        <button type="submit" data-confirm="button copy"
+                data-confirm-title="Button?">Go</button>
+      </form>`;
+    document.body.append(host);
+    const form = host.querySelector("form") as HTMLFormElement;
+    const button = host.querySelector("button") as HTMLButtonElement;
+    Object.defineProperty(form, "requestSubmit", { value: mock(() => {}) });
+
+    submitWith(form, button);
+
+    expect(document.querySelector(".bd-title")?.textContent).toBe("Button?");
+    expect(document.querySelector(".bd-description")?.textContent).toBe(
+      "button copy",
+    );
+
+    cancelBtn().click();
+    await Promise.resolve();
   });
 });

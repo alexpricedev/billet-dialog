@@ -152,13 +152,34 @@ Without JavaScript the form posts on the first click, exactly as it did before. 
 
 ## Form attributes
 
+Put them on the `<form>`, or on a single submit `<button>` inside it.
+
 | Attribute | Required | Effect |
 |---|---|---|
-| `data-confirm` | yes | The message, and the opt-in. A form without it is never gated. |
+| `data-confirm` | yes | The message, and the opt-in. A submission with it on neither the form nor the button pressed is never gated. |
 | `data-confirm-title` | no | Heading. Falls back to `defaultTitle`, then `"Are you sure?"`. |
 | `data-confirm-label` | no | Confirm button label. Falls back to `defaultConfirmLabel`, then `"Confirm"`. |
 | `data-confirm-danger` | no | Set to `"false"` to drop the destructive colour. Anything else (including absent) keeps it. |
-| `data-confirmed` | — | Set by the library on the approved resubmit. Do not set it yourself; it is the "let this one through" marker. |
+| `data-confirmed` | — | Set by the library for the duration of the approved resubmit and removed straight after. Do not set it yourself. |
+
+### Gating one button, not the form
+
+A table of rows is often one form with one Save, so nothing typed is lost, and a trash on every row submitting that same form with its own `name`/`value`. Gating the *form* there would gate Save as well. Put the attributes on the button instead:
+
+```html
+<form method="post" action="/work/save">
+  <input name="rate" value="23">
+  <button type="submit" name="remove" value="line-3"
+          data-confirm="The line goes, and nothing else on this form is saved."
+          data-confirm-title="Remove this line?"
+          data-confirm-label="Remove">Remove</button>
+  <button type="submit">Save</button>
+</form>
+```
+
+The approved resubmit goes through `requestSubmit(submitter)`, so the button's `name`/`value` are still in the payload — without that, "remove this row" would silently post as "save".
+
+A button's attributes win over the form's. A form-level `data-confirm` with one button opting *out* of it is not expressible, deliberately: a form whose Save is gated and whose Delete is not is a bug.
 
 ## Prompting directly
 

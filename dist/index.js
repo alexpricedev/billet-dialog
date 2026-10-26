@@ -205,13 +205,25 @@ function createDialog(config = {}) {
 }
 
 // src/forms.ts
-var submitForm = (form) => {
+var submitForm = (form, submitter) => {
   form.dataset.confirmed = "true";
-  if (typeof form.requestSubmit === "function") {
-    form.requestSubmit();
-  } else {
-    form.submit();
+  try {
+    if (typeof form.requestSubmit === "function") {
+      form.requestSubmit(isSubmitButton(submitter) ? submitter : undefined);
+    } else {
+      form.submit();
+    }
+  } finally {
+    delete form.dataset.confirmed;
   }
+};
+var isSubmitButton = (node) => (node instanceof HTMLButtonElement || node instanceof HTMLInputElement) && node.type === "submit";
+var sourceOf = (form, submitter) => {
+  if (submitter && submitter.dataset["confirm"] !== undefined)
+    return submitter;
+  if (form.dataset.confirm !== undefined)
+    return form;
+  return null;
 };
 function wireConfirmForms(dialog, opts = {}) {
   const root = opts.root ?? document;
@@ -219,20 +231,22 @@ function wireConfirmForms(dialog, opts = {}) {
     const form = e.target;
     if (!(form instanceof HTMLFormElement))
       return;
-    if (form.dataset.confirm === undefined)
-      return;
     if (form.dataset.confirmed === "true")
+      return;
+    const submitter = "submitter" in e && e.submitter instanceof HTMLElement ? e.submitter : null;
+    const source = sourceOf(form, submitter);
+    if (!source)
       return;
     e.preventDefault();
     dialog.confirm({
-      title: form.dataset.confirmTitle ?? opts.defaultTitle ?? "",
-      message: form.dataset.confirm,
-      confirmLabel: form.dataset.confirmLabel ?? opts.defaultConfirmLabel,
+      title: source.dataset["confirmTitle"] ?? opts.defaultTitle ?? "",
+      message: source.dataset["confirm"],
+      confirmLabel: source.dataset["confirmLabel"] ?? opts.defaultConfirmLabel,
       cancelLabel: opts.cancelLabel,
-      danger: form.dataset.confirmDanger !== "false"
+      danger: source.dataset["confirmDanger"] !== "false"
     }).then((confirmed) => {
       if (confirmed)
-        submitForm(form);
+        submitForm(form, submitter);
     }).catch(() => {});
   };
   root.addEventListener("submit", onSubmit);
