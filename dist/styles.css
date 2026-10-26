@@ -91,6 +91,15 @@
   /* Around the in-flow panel, which has no backdrop to separate it. */
   --bd-flow-margin: 1.5rem;
 
+  /* ---------------------------------------------------- the entry transition */
+  /* How the promoted dialog arrives over the page. Only ever read inside the
+     `prefers-reduced-motion: no-preference` block below, so reduced motion
+     gets the instant appearance and there is nothing to un-do. */
+  --bd-enter-duration: 180ms;
+  --bd-enter-ease: cubic-bezier(0.2, 0, 0.1, 1);
+  --bd-enter-from-y: 8px;
+  --bd-enter-from-scale: 0.98;
+
   /* ------------------------------------------- the confirm prompt's buttons */
   --bd-btn-font: var(--bd-font);
   --bd-btn-size: 14px;
@@ -173,6 +182,57 @@
   margin-block: var(--bd-flow-margin);
   border-color: var(--bd-border);
   box-shadow: none;
+}
+
+/* ------------------------------------------------------- the entry transition */
+
+/* A dialog promoted with `showModal()` otherwise snaps into existence, which
+   reads as a page change rather than as something arriving over the page —
+   and that distinction is the whole point of opening one in place.
+
+   `display` and `overlay` are discrete properties: without `allow-discrete`
+   the dialog is simply in the top layer or not, and neither the panel nor the
+   backdrop gets a frame to transition in. `@starting-style` supplies the
+   before-state for an element that has only just been rendered; there is no
+   other way to say "fade in from here" for something entering the top layer.
+
+   `[data-bd-root][open]:not(:modal)` is deliberately untouched. The in-flow
+   panel is page content, and page content does not animate on load.
+
+   Baseline 2024. An engine without it gets today's instant appearance, so
+   there is no fallback to write. */
+@media (prefers-reduced-motion: no-preference) {
+  [data-bd-root]:modal {
+    opacity: 1;
+    transform: none;
+    transition:
+      opacity var(--bd-enter-duration) var(--bd-enter-ease),
+      transform var(--bd-enter-duration) var(--bd-enter-ease),
+      display var(--bd-enter-duration) allow-discrete,
+      overlay var(--bd-enter-duration) allow-discrete;
+  }
+
+  @starting-style {
+    [data-bd-root]:modal {
+      opacity: 0;
+      transform: translateY(var(--bd-enter-from-y))
+        scale(var(--bd-enter-from-scale));
+    }
+  }
+
+  [data-bd-root]:modal::backdrop {
+    opacity: 1;
+    transition:
+      opacity var(--bd-enter-duration) var(--bd-enter-ease),
+      display var(--bd-enter-duration) allow-discrete,
+      overlay var(--bd-enter-duration) allow-discrete;
+  }
+
+  @starting-style {
+    [data-bd-root]:modal::backdrop {
+      opacity: 0;
+    }
+  }
 }
 
 /* ---------------------------------------------------------------- structure */

@@ -5,6 +5,8 @@ export type { ActivateOptions } from "./activate";
 export { createDialog, DEFAULT_TEXTS } from "./dialog";
 export type { DialogInstance } from "./dialog";
 export { wireConfirmForms } from "./forms";
+export { wireDialogLinks } from "./links";
+export type { DialogLinkOptions } from "./links";
 export { BD, DIALOG_SIZES, dialogAttrs } from "./markup";
 export type { ConfirmOptions, DialogAttrOptions, DialogConfig, DialogSize, DialogTexts, WireFormsOptions, } from "./types";
 export { upgradeDialogs } from "./upgrade";

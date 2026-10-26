@@ -5,6 +5,8 @@ Accessible dialogs for the server-rendered web. Two things, one stylesheet:
 1. **Confirm prompts** for destructive actions, gating `<form>` submissions as progressive enhancement — no JavaScript, and the form still posts.
 2. **Content dialogs** your own templates render as HTML, promoted to real modals on load — no JavaScript, and they render as a bordered panel in flow.
 
+On top of the second, optionally: **dialog routes** — a link to a URL that renders a dialog opens it *over* the page it was pressed on, rather than loading that page. See [Dialog routes](#dialog-routes).
+
 Native `<dialog>`, zero dependencies, scoped CSS tokens. Framework-agnostic — designed to drop into Billet but works anywhere.
 
 ## Copy this to your coding agent
@@ -276,6 +278,54 @@ The second is what a server render leaves behind until `upgradeDialogs()` runs �
 
 Layout only (`flex-shrink`, `margin-inline-start`). A host with a button system puts its own classes on that control alongside `bd-close`, and two single-class rules are settled by stylesheet import order rather than specificity — so a visual default here would silently win or lose depending on where you put the `@import`. The confirm prompt this package builds has no close button, so nothing needs one.
 
+## Dialog routes
+
+A *modal route* is a URL whose only job is to render a page with one dialog open — `/projects/7/spaces/room/3` is the project overview plus the space details. Following it is a full navigation, so the page behind the dialog is re-fetched, re-rendered and scrolled to the top before the dialog appears, and dismissing it costs a second load back. From a card halfway down a grid, the whole page jumps twice for an overlay.
+
+`wireDialogLinks()` fetches that URL instead, lifts the dialog out of the response, shows it over what is already on screen, and puts the URL in the address bar. Back, Escape and the close link all return to the page underneath with its scroll position untouched, because it never went anywhere.
+
+```ts
+import { wireDialogLinks } from "@alexpricedev/billet-dialog";
+
+wireDialogLinks();
+```
+
+```html
+<a href="/projects/7/spaces/room/3" data-bd-link>Details</a>
+```
+
+`data-bd-link` is the opt-in, and it has to be: nothing can be known about a URL without fetching it, so the host declares which of its links are dialog routes.
+
+### Every failure path is the plain navigation
+
+A non-ok response, a redirect that landed somewhere else, a body with no `dialog[data-bd-root][open]` in it, a fetch that threw — each one falls through to `location.assign(href)`. This can only ever be faster than following the link, never a dead end. The same holds for the link itself: it stays a real link to a real URL that really renders the dialog server-side, so a page with no JavaScript, a middle click, a Cmd-click, a `target`, a `download` and a cross-origin `href` are all handed straight back to the browser.
+
+### The `onAdopt` seam
+
+The package does **not** execute `<script>` from the fetched document, and will not — adopting markup is safe, running code is the host's decision. `onAdopt` is where you re-run whatever the dialog's content needs:
+
+```ts
+wireDialogLinks({
+  onAdopt: (dialog, source) => {
+    initFormPending(dialog);
+    initializePage(document.body.dataset.page);
+  },
+});
+```
+
+It is called with the dialog already in the document and before the promotion, so a `querySelector` from the host's own island finds it. Two consequences worth planning for:
+
+- **A page island must be safe to run twice.** It is about to run a second time, over a document that already has its first wiring on it. Guard anything that binds.
+- **The page behind the dialog is not re-rendered.** A dialog opened, closed and reopened shows a freshly fetched dialog over stale page content. That is correct when the dialog is the only thing that changes, and it is the common case because saving redirects. If your route's dialog can change the page behind it, reload on dismissal rather than relying on this.
+
+### History
+
+Opening `pushState`s the dialog's URL, because the dialog is a place and Back is how a reader expects to leave one. Dismissing removes the node, restores the title and winds history back — but only if that entry is still on top, so a dismissal driven *by* Back does not overshoot. Going Forward into a dialog route with nothing on screen reloads: the server renders that URL correctly, and there is nothing here to reconstruct.
+
+### `data-bd-loading`
+
+Set on the link while its page is in flight and removed when it lands. A styling hook; this package draws nothing with it.
+
 ## Multiple instances
 
 `createDialog()` returns an independent confirm instance with its own element and its own ARIA ids. Reach for it when you need two at once, or one inside an iframe:
@@ -360,6 +410,19 @@ Every value in the stylesheet is a token. That is the contract: a host should be
 | `--bd-gap` | `0.5rem` | Between the footer's controls |
 | `--bd-flow-margin` | `1.5rem` | Around the in-flow panel, which has no backdrop to separate it |
 
+### The entry transition
+
+How the promoted dialog arrives over the page. Read only inside `@media (prefers-reduced-motion: no-preference)`, so reduced motion gets the instant appearance and there is nothing to un-do. The in-flow panel is never animated — it is page content, and page content does not animate on load.
+
+| Token | Default |
+|---|---|
+| `--bd-enter-duration` | `180ms` |
+| `--bd-enter-ease` | `cubic-bezier(0.2, 0, 0.1, 1)` |
+| `--bd-enter-from-y` | `8px` — how far below its resting place the panel starts |
+| `--bd-enter-from-scale` | `0.98` |
+
+It is built on `@starting-style` and `transition-behavior: allow-discrete`, both Baseline 2024. An engine without them gets the instant appearance, which is what every version before this one did, so there is no fallback to write.
+
 ### The confirm prompt's buttons
 
 | Token | Default |
@@ -388,6 +451,10 @@ Gate `[data-confirm]` forms through the shared instance. Returns the unwire func
 Promote every `<dialog data-bd-root open>` under `root` (default `document`) and wire its `data-bd-close-href`. Returns a function that unbinds the listeners and closes what it promoted.
 
 `root` may be the dialog itself, which is the natural call from a framework component that has just rendered one and holds the ref — `querySelectorAll` does not match the node it is called on, so that case is handled explicitly.
+
+### `wireDialogLinks(opts?): () => void`
+
+Open `<a data-bd-link>` as a dialog over the current page instead of navigating. `opts.onAdopt(dialog, source)` runs after the dialog is in the document and before it is promoted; `opts.fetch` overrides `globalThis.fetch`, for tests. Returns a cleanup that removes both listeners and tears down any dialog still on screen. Every failure falls through to `location.assign(href)`.
 
 ### `dialogAttrs(opts?): Record<string, string>`
 
@@ -443,6 +510,7 @@ Per-instance equivalents. `element` is the `<dialog>`. `confirm` on a destroyed 
 - **Rendering a content dialog without `open`** leaves it hidden with nothing to promote. `upgradeDialogs()` only looks at `[open]`.
 - **Keeping your own modal CSS as well.** Two stylesheets styling one dialog is settled by import order, which nobody reads. Delete yours.
 - **Assigning `document.body.innerHTML` after the dialog mounts** wipes it out from under the instance. Append instead.
+- **An island that double-binds inside an adopted dialog.** `onAdopt` re-runs the host's wiring over a document that already has some; anything that adds a listener needs a guard. See "Dialog routes".
 - **Two copies of the package at different versions** each mount their own element. Dedupe your lockfile.
 
 ## Verifying the install

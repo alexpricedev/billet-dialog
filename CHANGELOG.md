@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [0.3.0]
+
+### Added
+
+- `wireDialogLinks(opts?)` — **dialog routes**. An `<a data-bd-link>` pointing at a URL whose page renders a dialog now opens that dialog *over* the current page: the URL is fetched, the `dialog[data-bd-root][open]` is adopted out of the response, promoted, and `pushState`d into the address bar. Back, Escape and the close link return to the page underneath with its scroll position untouched. Every failure path — non-ok, a redirect elsewhere, no dialog in the body, a thrown fetch — falls through to `location.assign(href)`, and every ordinary way of opening a link (middle click, Cmd/Ctrl/Shift/Alt, `target`, `download`, cross-origin) is handed back to the browser. `opts.onAdopt(dialog, source)` is the host's seam for re-running the scripts the dialog's content needs; the package does not execute `<script>` from the fetched document.
+- `data-bd-loading`, set on the link while its page is in flight. A styling hook; the package draws nothing with it.
+- An entry transition for the promoted dialog and its backdrop, via `@starting-style` and `allow-discrete`, with four tokens: `--bd-enter-duration`, `--bd-enter-ease`, `--bd-enter-from-y`, `--bd-enter-from-scale`. The whole block sits inside `@media (prefers-reduced-motion: no-preference)`, so reduced motion keeps the instant appearance, and `[data-bd-root][open]:not(:modal)` is untouched — the in-flow panel is page content and must not animate on load.
+
 ## [0.2.0]
 
 The package now covers every dialog on a server-rendered site, not just the confirm prompt. Breaking, because the element and the class names both changed.

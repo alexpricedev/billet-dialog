@@ -252,6 +252,128 @@ function wireConfirmForms(dialog, opts = {}) {
   root.addEventListener("submit", onSubmit);
   return () => root.removeEventListener("submit", onSubmit);
 }
+// src/links.ts
+var LINK_SELECTOR = "a[data-bd-link][href]";
+var DIALOG_SELECTOR = "dialog[data-bd-root][open]";
+var LOADING_ATTR = "data-bd-loading";
+function wireDialogLinks({
+  onAdopt,
+  fetch: fetchImpl
+} = {}) {
+  const doc = document;
+  const view = doc.defaultView ?? window;
+  const request = fetchImpl ?? ((input, init) => view.fetch(input, init));
+  let current = null;
+  const navigate = (href) => {
+    view.location.assign(href);
+  };
+  const state = () => view.history.state ?? null;
+  const adopt = (found, source, href) => {
+    current?.close(true);
+    const dialog = doc.adoptNode(found);
+    doc.body.append(dialog);
+    const previousTitle = doc.title;
+    if (source.title)
+      doc.title = source.title;
+    view.history.pushState({ bdLink: href }, "", href);
+    onAdopt?.(dialog, source);
+    const closeHref = dialog.dataset.bdCloseHref;
+    const closeTarget = closeHref ? new URL(closeHref, view.location.href).href : null;
+    const onDialogClick = (event) => {
+      if (closeTarget === null || event.defaultPrevented)
+        return;
+      const anchor = event.target?.closest?.("a[href]");
+      const target = anchor?.getAttribute("href");
+      if (!target)
+        return;
+      if (new URL(target, view.location.href).href !== closeTarget)
+        return;
+      event.preventDefault();
+      close(false);
+    };
+    let closed = false;
+    let release = null;
+    const close = (viaPopstate) => {
+      if (closed)
+        return;
+      closed = true;
+      if (current?.href === href)
+        current = null;
+      dialog.removeEventListener("click", onDialogClick);
+      release?.();
+      dialog.remove();
+      doc.title = previousTitle;
+      if (!viaPopstate && state()?.bdLink === href)
+        view.history.back();
+    };
+    dialog.addEventListener("click", onDialogClick);
+    current = { href, close };
+    release = activateDialog(dialog, {
+      dismiss: () => close(false),
+      closeOnDismiss: true
+    });
+  };
+  const open = async (href, link) => {
+    link.setAttribute(LOADING_ATTR, "");
+    try {
+      const response = await request(href, {
+        credentials: "same-origin",
+        headers: { Accept: "text/html" }
+      });
+      if (!response.ok)
+        return navigate(href);
+      const landed = response.url ? new URL(response.url, view.location.href).href : href;
+      if (landed !== new URL(href, view.location.href).href) {
+        return navigate(href);
+      }
+      const source = new DOMParser().parseFromString(await response.text(), "text/html");
+      const found = source.querySelector(DIALOG_SELECTOR);
+      if (!found)
+        return navigate(href);
+      adopt(found, source, href);
+    } catch {
+      navigate(href);
+    } finally {
+      link.removeAttribute(LOADING_ATTR);
+    }
+  };
+  const onClick = (event) => {
+    if (event.defaultPrevented || event.button !== 0)
+      return;
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+      return;
+    }
+    const link = event.target?.closest?.(LINK_SELECTOR);
+    if (!link)
+      return;
+    if (link.hasAttribute("target") || link.hasAttribute("download"))
+      return;
+    const href = link.getAttribute("href");
+    if (!href)
+      return;
+    const url = new URL(href, view.location.href);
+    if (url.origin !== view.location.origin)
+      return;
+    event.preventDefault();
+    open(url.href, link);
+  };
+  const onPopState = () => {
+    if (current) {
+      if (state()?.bdLink !== current.href)
+        current.close(true);
+      return;
+    }
+    if (state()?.bdLink)
+      view.location.reload();
+  };
+  doc.addEventListener("click", onClick);
+  view.addEventListener("popstate", onPopState);
+  return () => {
+    doc.removeEventListener("click", onClick);
+    view.removeEventListener("popstate", onPopState);
+    current?.close(true);
+  };
+}
 // src/upgrade.ts
 var SELECTOR = "dialog[data-bd-root][open]";
 var targets = (root) => {
@@ -326,5 +448,6 @@ export {
   dialogAttrs,
   isModal,
   upgradeDialogs,
-  wireConfirmForms
+  wireConfirmForms,
+  wireDialogLinks
 };
