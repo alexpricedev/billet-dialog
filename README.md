@@ -345,6 +345,7 @@ Every value in the stylesheet is a token. That is the contract: a host should be
 |---|---|
 | `--bd-btn-font` / `-size` / `-weight` | `var(--bd-font)` / `14px` / `600` |
 | `--bd-btn-radius` / `-pad` / `-border-width` | `8px` / `8px 16px` / `1px` |
+| `--bd-btn-min-height` | `auto` — set it when your buttons are a fixed control height rather than padding |
 | `--bd-btn-duration` | `150ms` |
 
 The stylesheet has no `:root` token rules and no bare element selectors. Both confirm buttons carry their own base styles, so a host app's global `button` rule neither leaks in nor gets fought.

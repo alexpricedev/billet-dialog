@@ -97,6 +97,9 @@
   --bd-btn-weight: 600;
   --bd-btn-radius: 8px;
   --bd-btn-pad: 8px 16px;
+  /* For a host whose buttons are a fixed control height rather than padding.
+     `auto` leaves the padding to size them, as it does here. */
+  --bd-btn-min-height: auto;
   --bd-btn-border-width: 1px;
   --bd-btn-duration: 150ms;
 
@@ -292,6 +295,7 @@
   font-size: var(--bd-btn-size);
   font-weight: var(--bd-btn-weight);
   line-height: 1;
+  min-height: var(--bd-btn-min-height);
   padding: var(--bd-btn-pad);
   border: var(--bd-btn-border-width) solid transparent;
   border-radius: var(--bd-btn-radius);
