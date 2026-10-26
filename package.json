@@ -1,29 +1,30 @@
 {
   "name": "@alexpricedev/billet-dialog",
-  "version": "0.1.0",
-  "description": "Standalone, accessible confirm dialog for destructive actions. Zero dependencies, vanilla DOM, scoped CSS tokens, progressive-enhancement form gating. Designed for Billet but framework-agnostic.",
+  "version": "0.2.0",
+  "description": "Accessible dialogs for the server-rendered web: a confirm prompt for destructive actions, and progressive-enhancement upgrading for dialogs your templates render. Native <dialog>, zero dependencies, scoped CSS tokens.",
   "type": "module",
-  "module": "src/index.ts",
-  "types": "src/index.ts",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./src/index.ts",
-      "import": "./src/index.ts",
-      "default": "./src/index.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
-    "./styles.css": "./src/styles.css"
+    "./styles.css": "./dist/styles.css"
   },
   "files": [
-    "src",
-    "!src/**/*.test.ts",
+    "dist",
     "README.md",
     "CHANGELOG.md",
     "LICENSE"
   ],
   "scripts": {
+    "build": "bun build ./src/index.ts --outdir dist --target browser --format esm && tsc -p tsconfig.build.json && cp src/styles.css dist/styles.css",
     "test": "bun test",
     "typecheck": "tsc --noEmit",
-    "check": "tsc --noEmit && bun test"
+    "check": "tsc --noEmit && bun test",
+    "prepublishOnly": "bun run check && bun run build"
   },
   "publishConfig": {
     "access": "public"
@@ -52,9 +53,9 @@
     "bun"
   ],
   "devDependencies": {
-    "@happy-dom/global-registrator": "^20.9.0",
+    "@happy-dom/global-registrator": "^21",
     "@types/bun": "latest",
-    "happy-dom": "^15.0.0",
+    "happy-dom": "^21",
     "typescript": "^5.4.0"
   }
 }

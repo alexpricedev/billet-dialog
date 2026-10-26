@@ -12,7 +12,7 @@ const wire = (opts?: WireFormsOptions) => {
   return dialog;
 };
 
-const root = () => document.querySelector("[data-bd-root]") as HTMLElement;
+const root = () => document.querySelector("[data-bd-root]") as HTMLDialogElement;
 const cancelBtn = () => document.querySelector(".bd-cancel") as HTMLButtonElement;
 const confirmBtn = () =>
   document.querySelector(".bd-confirm") as HTMLButtonElement;
@@ -55,11 +55,11 @@ describe("wireConfirmForms", () => {
 
     expect(notCancelled).toBe(false);
     expect(requestSubmit).not.toHaveBeenCalled();
-    expect(root().classList.contains("is-open")).toBe(true);
+    expect(root().open).toBe(true);
     expect(document.querySelector(".bd-title")?.textContent).toBe(
       "Delete this list?",
     );
-    expect(document.querySelector(".bd-message")?.textContent).toBe(
+    expect(document.querySelector(".bd-description")?.textContent).toBe(
       "This is permanent.",
     );
     expect(confirmBtn().textContent).toBe("Delete list");
@@ -96,7 +96,7 @@ describe("wireConfirmForms", () => {
     form.dataset.confirmed = "true";
 
     expect(submit(form)).toBe(true);
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
   });
 
   test("ignores forms without a data-confirm message", () => {
@@ -104,7 +104,7 @@ describe("wireConfirmForms", () => {
     const { form } = setupForm();
 
     expect(submit(form)).toBe(true);
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
   });
 
   test("falls back to the dialog's own copy when only data-confirm is set", () => {
@@ -163,7 +163,7 @@ describe("wireConfirmForms", () => {
     const { form } = setupForm(CONFIRM_ATTRS);
 
     expect(submit(form)).toBe(true);
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
   });
 
   test("the returned unwire detaches the handler", () => {
@@ -174,7 +174,7 @@ describe("wireConfirmForms", () => {
 
     expect(submit(form)).toBe(true);
     expect(requestSubmit).not.toHaveBeenCalled();
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
   });
 
   test("swallows the rejection when the dialog is destroyed first", async () => {

@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { Dialog } from "../src/index";
 
-const root = () => document.querySelector("[data-bd-root]") as HTMLElement;
+const root = () => document.querySelector("[data-bd-root]") as HTMLDialogElement;
 const cancelBtn = () => document.querySelector(".bd-cancel") as HTMLButtonElement;
 const confirmBtn = () =>
   document.querySelector(".bd-confirm") as HTMLButtonElement;
@@ -27,7 +27,7 @@ describe("Dialog", () => {
     const result = Dialog.confirm({ title: "Sure?" });
 
     expect(Dialog.current()).not.toBeNull();
-    expect(root().classList.contains("is-open")).toBe(true);
+    expect(root().open).toBe(true);
 
     confirmBtn().click();
     expect(await result).toBe(true);
@@ -72,7 +72,7 @@ describe("Dialog", () => {
     Object.defineProperty(form, "requestSubmit", { value: requestSubmit });
 
     form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
-    expect(root().classList.contains("is-open")).toBe(true);
+    expect(root().open).toBe(true);
 
     confirmBtn().click();
     await Promise.resolve();

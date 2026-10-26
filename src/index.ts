@@ -2,15 +2,21 @@ import { createDialog, type DialogInstance } from "./dialog";
 import { wireConfirmForms } from "./forms";
 import type { ConfirmOptions, DialogConfig, WireFormsOptions } from "./types";
 
+export { activateDialog, claimAutofocus, isModal } from "./activate";
+export type { ActivateOptions } from "./activate";
 export { createDialog, DEFAULT_TEXTS } from "./dialog";
 export type { DialogInstance } from "./dialog";
 export { wireConfirmForms } from "./forms";
+export { BD, DIALOG_SIZES, dialogAttrs } from "./markup";
 export type {
   ConfirmOptions,
+  DialogAttrOptions,
   DialogConfig,
+  DialogSize,
   DialogTexts,
   WireFormsOptions,
 } from "./types";
+export { upgradeDialogs } from "./upgrade";
 
 // A shared instance for the common case: one app, one dialog. Built on first
 // use so importing the package never touches the DOM. Reach for

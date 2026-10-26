@@ -1,3 +1,5 @@
+import { activateDialog } from "./activate";
+import { BD } from "./markup";
 import type { ConfirmOptions, DialogConfig, DialogTexts } from "./types";
 
 export const DEFAULT_TEXTS: DialogTexts = {
@@ -16,10 +18,10 @@ export interface DialogInstance {
   confirm(opts: ConfirmOptions): Promise<boolean>;
   /** True while a prompt is awaiting an answer. */
   isOpen(): boolean;
-  /** The overlay element, in case a host needs to inspect or restyle it. */
-  readonly element: HTMLElement;
+  /** The dialog element, in case a host needs to inspect or restyle it. */
+  readonly element: HTMLDialogElement;
   /**
-   * Remove the overlay and its listener. A pending prompt resolves `false`.
+   * Remove the dialog and its listeners. A pending prompt resolves `false`.
    * Safe to call more than once; every later `confirm` rejects.
    */
   destroy(): void;
@@ -29,6 +31,15 @@ export interface DialogInstance {
 // screen reader at each other's heading.
 let seq = 0;
 
+/**
+ * Build an independent confirm prompt.
+ *
+ * The element is a native `<dialog>`, left closed until the first prompt, and
+ * promoted with `showModal()` for each one. The top layer, the `::backdrop`,
+ * the focus trap, the inert page behind and Escape all come from the browser
+ * — which is the reason this is a `<dialog>` and not a positioned `<div>` with
+ * a hand-rolled Tab cycle.
+ */
 export function createDialog(config: DialogConfig = {}): DialogInstance {
   const container = config.container ?? document.body;
   const doc = container.ownerDocument;
@@ -36,78 +47,70 @@ export function createDialog(config: DialogConfig = {}): DialogInstance {
   const uid = ++seq;
 
   let pending: ((confirmed: boolean) => void) | null = null;
+  let release: (() => void) | null = null;
   let lastFocused: HTMLElement | null = null;
   let destroyed = false;
 
-  const overlay = doc.createElement("div");
-  overlay.setAttribute("data-bd-root", "");
-  overlay.className = "bd-overlay";
+  const dialog = doc.createElement("dialog");
+  dialog.setAttribute("data-bd-root", "");
+  dialog.setAttribute("data-bd-size", "sm");
+  // `alertdialog` rather than the implicit `dialog`: this interrupts to ask a
+  // question whose wrong answer is destructive, which is exactly the
+  // distinction the role draws. `aria-modal` is set because `showModal()`
+  // conveys modality to the browser but not, in every engine, to the tree.
+  dialog.setAttribute("role", "alertdialog");
+  dialog.setAttribute("aria-modal", "true");
+  dialog.setAttribute("aria-labelledby", `bd-title-${uid}`);
+  dialog.setAttribute("aria-describedby", `bd-message-${uid}`);
 
-  const panel = doc.createElement("div");
-  panel.className = "bd-dialog";
-  panel.setAttribute("role", "alertdialog");
-  panel.setAttribute("aria-modal", "true");
-  panel.setAttribute("aria-labelledby", `bd-title-${uid}`);
-  panel.setAttribute("aria-describedby", `bd-message-${uid}`);
+  const header = doc.createElement("div");
+  header.className = BD.header;
+
+  const heading = doc.createElement("div");
+  heading.className = BD.heading;
 
   const title = doc.createElement("h2");
-  title.className = "bd-title";
+  title.className = BD.title;
   title.id = `bd-title-${uid}`;
 
   const message = doc.createElement("p");
-  message.className = "bd-message";
+  message.className = BD.description;
   message.id = `bd-message-${uid}`;
 
-  const actions = doc.createElement("div");
-  actions.className = "bd-actions";
+  const footer = doc.createElement("div");
+  footer.className = BD.footer;
 
   const cancelBtn = doc.createElement("button");
   cancelBtn.type = "button";
-  cancelBtn.className = "bd-cancel";
+  cancelBtn.className = BD.cancel;
 
   const confirmBtn = doc.createElement("button");
   confirmBtn.type = "button";
-  confirmBtn.className = "bd-confirm";
+  confirmBtn.className = BD.confirm;
 
-  actions.append(cancelBtn, confirmBtn);
-  panel.append(title, message, actions);
-  overlay.append(panel);
-  container.append(overlay);
+  heading.append(title, message);
+  header.append(heading);
+  footer.append(cancelBtn, confirmBtn);
+  dialog.append(header, footer);
+  container.append(dialog);
 
   const settle = (confirmed: boolean) => {
     const resolve = pending;
     pending = null;
-    overlay.classList.remove("is-open");
+    // Unbinds the listeners and closes the dialog, in that order, so the close
+    // is not read back as a second dismissal.
+    release?.();
+    release = null;
     lastFocused?.focus();
     lastFocused = null;
     resolve?.(confirmed);
   };
 
-  const onKeydown = (e: KeyboardEvent) => {
-    if (!pending) return;
-    if (e.key === "Escape") {
-      e.preventDefault();
-      settle(false);
-      return;
-    }
-    // Two focusable controls, so the trap is just a toggle between them.
-    if (e.key === "Tab") {
-      e.preventDefault();
-      const next =
-        doc.activeElement === cancelBtn ? confirmBtn : cancelBtn;
-      next.focus();
-    }
-  };
-
   cancelBtn.addEventListener("click", () => settle(false));
   confirmBtn.addEventListener("click", () => settle(true));
-  overlay.addEventListener("click", (e) => {
-    if (e.target === overlay) settle(false);
-  });
-  doc.addEventListener("keydown", onKeydown);
 
   return {
-    element: overlay,
+    element: dialog,
 
     isOpen: () => pending !== null,
 
@@ -127,20 +130,32 @@ export function createDialog(config: DialogConfig = {}): DialogInstance {
         message.hidden = !opts.message;
         confirmBtn.textContent = opts.confirmLabel ?? texts.confirmLabel;
         cancelBtn.textContent = opts.cancelLabel ?? texts.cancelLabel;
-        confirmBtn.classList.toggle("is-danger", opts.danger === true);
+        confirmBtn.classList.toggle(BD.danger, opts.danger === true);
 
         lastFocused =
           doc.activeElement instanceof HTMLElement ? doc.activeElement : null;
-        overlay.classList.add("is-open");
+
+        // Promotes the dialog and wires Escape, the backdrop, and any close
+        // that bypasses both. `closeOnDismiss` so a dismissal shuts the dialog
+        // here — there is no owner to wait for and nowhere to navigate to.
+        release = activateDialog(dialog, {
+          dismiss: () => settle(false),
+          closeOnDismiss: true,
+        });
+
         // Focus the safe choice — a stray Enter must never destroy anything.
+        // The browser's own dialog focusing steps would land here anyway, since
+        // Cancel is the first focusable child, but the order of the two buttons
+        // is a visual decision and this must not depend on it.
         cancelBtn.focus();
       });
     },
 
     destroy() {
       if (pending) settle(false);
-      doc.removeEventListener("keydown", onKeydown);
-      overlay.remove();
+      release?.();
+      release = null;
+      dialog.remove();
       destroyed = true;
     },
   };

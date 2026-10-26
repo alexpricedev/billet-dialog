@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { createDialog, type DialogInstance } from "../src/dialog";
 
+// The prompt is a native `<dialog>`, so the focus trap, the top layer, the
+// inert page behind it and Escape itself are the browser's job and are not
+// asserted here — happy-dom implements `showModal()` and `close()` but not the
+// behaviour they trigger. What is testable is the wiring, and the wiring is
+// what a refactor breaks.
+//
+// `cancel` is what a trusted Escape dispatches on a modal dialog, so that is
+// how Escape is exercised below.
+
 let dialog: DialogInstance | null = null;
 
 const open = (config?: Parameters<typeof createDialog>[0]) => {
@@ -8,15 +17,15 @@ const open = (config?: Parameters<typeof createDialog>[0]) => {
   return dialog;
 };
 
-const root = () => document.querySelector("[data-bd-root]") as HTMLElement;
-const cancelBtn = () => document.querySelector(".bd-cancel") as HTMLButtonElement;
+const root = () =>
+  document.querySelector("[data-bd-root]") as HTMLDialogElement;
+const cancelBtn = () =>
+  document.querySelector(".bd-cancel") as HTMLButtonElement;
 const confirmBtn = () =>
   document.querySelector(".bd-confirm") as HTMLButtonElement;
 
-const press = (key: string) =>
-  document.dispatchEvent(
-    new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
-  );
+const pressEscape = (node: HTMLDialogElement) =>
+  node.dispatchEvent(new Event("cancel", { cancelable: true }));
 
 afterEach(() => {
   dialog?.destroy();
@@ -25,14 +34,23 @@ afterEach(() => {
 });
 
 describe("createDialog", () => {
-  test("appends a hidden overlay on creation, before any prompt", () => {
+  test("appends a closed dialog on creation, before any prompt", () => {
     open();
 
     expect(root()).not.toBeNull();
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
   });
 
-  test("renders the supplied copy and opens the overlay", async () => {
+  test("is an alertdialog, not a plain dialog", () => {
+    // The wrong answer to this question is destructive, which is the
+    // distinction the role draws.
+    open();
+
+    expect(root().getAttribute("role")).toBe("alertdialog");
+    expect(root().getAttribute("aria-modal")).toBe("true");
+  });
+
+  test("renders the supplied copy and opens the dialog", async () => {
     const d = open();
     const result = d.confirm({
       title: "Delete this list?",
@@ -41,12 +59,12 @@ describe("createDialog", () => {
       danger: true,
     });
 
-    expect(root().classList.contains("is-open")).toBe(true);
+    expect(root().open).toBe(true);
     expect(d.isOpen()).toBe(true);
     expect(document.querySelector(".bd-title")?.textContent).toBe(
       "Delete this list?",
     );
-    expect(document.querySelector(".bd-message")?.textContent).toBe(
+    expect(document.querySelector(".bd-description")?.textContent).toBe(
       "This is permanent.",
     );
     expect(confirmBtn().textContent).toBe("Delete list");
@@ -57,13 +75,24 @@ describe("createDialog", () => {
     await result;
   });
 
+  test("labels itself by the title and describes itself by the message", () => {
+    open();
+
+    const titleId = (document.querySelector(".bd-title") as HTMLElement).id;
+    const descId = (document.querySelector(".bd-description") as HTMLElement)
+      .id;
+
+    expect(root().getAttribute("aria-labelledby")).toBe(titleId);
+    expect(root().getAttribute("aria-describedby")).toBe(descId);
+  });
+
   test("resolves true when the confirm button is clicked", async () => {
     const d = open();
     const result = d.confirm({ title: "Sure?" });
     confirmBtn().click();
 
     expect(await result).toBe(true);
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(root().open).toBe(false);
     expect(d.isOpen()).toBe(false);
   });
 
@@ -74,45 +103,65 @@ describe("createDialog", () => {
     expect(await result).toBe(false);
   });
 
-  test("resolves false on Escape", async () => {
+  test("resolves false on Escape, and closes", async () => {
     const result = open().confirm({ title: "Sure?" });
-    press("Escape");
+    pressEscape(root());
+
+    expect(await result).toBe(false);
+    expect(root().open).toBe(false);
+  });
+
+  test("the browser's own close is not allowed to answer behind our back", () => {
+    // `cancel`'s default action closes the dialog. We prevent it and drive the
+    // close ourselves, because that default only exists behind a *trusted*
+    // Escape — leaning on it would make the behaviour depend on an engine
+    // detail rather than on `activate.ts`.
+    const result = open().confirm({ title: "Sure?" });
+    const event = new Event("cancel", { cancelable: true });
+    root().dispatchEvent(event);
+
+    expect(event.defaultPrevented).toBe(true);
+    void result;
+  });
+
+  test("resolves false when something closes the dialog directly", async () => {
+    // A `<form method="dialog">` or a stray `close()`. The owner has to be told
+    // or its state disagrees with what is on screen.
+    const result = open().confirm({ title: "Sure?" });
+    root().close();
 
     expect(await result).toBe(false);
   });
 
   test("resolves false when the backdrop is clicked", async () => {
+    // A click on a modal dialog's backdrop reports the dialog itself as the
+    // target, because `::backdrop` is a pseudo-element with no node of its own.
     const result = open().confirm({ title: "Sure?" });
     root().dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
     expect(await result).toBe(false);
   });
 
-  test("keeps the panel open when the panel itself is clicked", async () => {
+  test("stays open when something inside it is clicked", async () => {
     const result = open().confirm({ title: "Sure?" });
     document
-      .querySelector(".bd-dialog")
+      .querySelector(".bd-title")
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
 
-    expect(root().classList.contains("is-open")).toBe(true);
+    expect(root().open).toBe(true);
     confirmBtn().click();
     expect(await result).toBe(true);
   });
 
-  test("ignores stray keys while closed", () => {
+  test("ignores a stray cancel while closed", () => {
     open();
-    expect(() => press("Escape")).not.toThrow();
-    expect(root().classList.contains("is-open")).toBe(false);
+    expect(() => pressEscape(root())).not.toThrow();
+    expect(root().open).toBe(false);
   });
 
-  test("focuses cancel first and traps Tab between the two buttons", async () => {
-    const result = open().confirm({ title: "Sure?" });
-    expect(document.activeElement).toBe(cancelBtn());
+  test("focuses the safe choice, never the destructive one", async () => {
+    const result = open().confirm({ title: "Sure?", danger: true });
 
-    press("Tab");
-    expect(document.activeElement).toBe(confirmBtn());
-
-    press("Tab");
     expect(document.activeElement).toBe(cancelBtn());
 
     cancelBtn().click();
@@ -122,9 +171,9 @@ describe("createDialog", () => {
   test("hides the message paragraph when no message is given", async () => {
     const result = open().confirm({ title: "Sure?" });
 
-    expect((document.querySelector(".bd-message") as HTMLElement).hidden).toBe(
-      true,
-    );
+    expect(
+      (document.querySelector(".bd-description") as HTMLElement).hidden,
+    ).toBe(true);
 
     cancelBtn().click();
     await result;
@@ -149,12 +198,13 @@ describe("createDialog", () => {
 
     expect(await first).toBe(false);
     expect(document.querySelector(".bd-title")?.textContent).toBe("Second?");
+    expect(root().open).toBe(true);
 
     confirmBtn().click();
     expect(await second).toBe(true);
   });
 
-  test("reuses a single overlay across prompts", async () => {
+  test("reuses a single dialog across prompts", async () => {
     const d = open();
     const first = d.confirm({ title: "Sure?" });
     cancelBtn().click();
@@ -162,6 +212,7 @@ describe("createDialog", () => {
 
     const second = d.confirm({ title: "Sure again?" });
     expect(document.querySelectorAll("[data-bd-root]")).toHaveLength(1);
+    expect(root().open).toBe(true);
 
     cancelBtn().click();
     await second;
@@ -192,8 +243,8 @@ describe("createDialog", () => {
     const a = createDialog();
     const b = createDialog();
 
-    const ids = Array.from(document.querySelectorAll(".bd-dialog")).map((el) =>
-      el.getAttribute("aria-labelledby"),
+    const ids = Array.from(document.querySelectorAll("[data-bd-root]")).map(
+      (el) => el.getAttribute("aria-labelledby"),
     );
     expect(ids[0]).not.toBe(ids[1]);
 
@@ -220,7 +271,7 @@ describe("createDialog", () => {
 });
 
 describe("destroy", () => {
-  test("removes the overlay and cancels a pending prompt", async () => {
+  test("removes the dialog and cancels a pending prompt", async () => {
     const d = createDialog();
     const result = d.confirm({ title: "Sure?" });
     d.destroy();
@@ -242,13 +293,13 @@ describe("destroy", () => {
     expect(d.confirm({ title: "Sure?" })).rejects.toThrow("destroyed");
   });
 
-  test("detaches its key listener, leaving other instances alone", async () => {
+  test("leaves other instances alone", async () => {
     const a = createDialog();
     const b = createDialog();
     a.destroy();
 
     const result = b.confirm({ title: "B?" });
-    press("Escape");
+    pressEscape(b.element);
 
     expect(await result).toBe(false);
     b.destroy();
