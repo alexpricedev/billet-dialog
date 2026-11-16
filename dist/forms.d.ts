@@ -1,5 +1,5 @@
-import type { DialogInstance } from "./dialog";
-import type { WireFormsOptions } from "./types";
+import type { DialogInstance } from "./dialog.js";
+import type { WireFormsOptions } from "./types.js";
 /**
  * Gate `[data-confirm]` submissions behind `dialog`, through one delegated
  * listener. A form without JavaScript still posts straight through, so this
