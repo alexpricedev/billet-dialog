@@ -1,6 +1,6 @@
-import { activateDialog } from "./activate";
-import { BD } from "./markup";
-import type { ConfirmOptions, DialogConfig, DialogTexts } from "./types";
+import { activateDialog } from "./activate.js";
+import { BD } from "./markup.js";
+import type { ConfirmOptions, DialogConfig, DialogTexts } from "./types.js";
 
 export const DEFAULT_TEXTS: DialogTexts = {
   title: "Are you sure?",

@@ -1,4 +1,4 @@
-import type { ConfirmOptions, DialogConfig, DialogTexts } from "./types";
+import type { ConfirmOptions, DialogConfig, DialogTexts } from "./types.js";
 export declare const DEFAULT_TEXTS: DialogTexts;
 export interface DialogInstance {
     /**

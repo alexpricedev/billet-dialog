@@ -1,15 +1,15 @@
-import { createDialog, type DialogInstance } from "./dialog";
-import { wireConfirmForms } from "./forms";
-import type { ConfirmOptions, DialogConfig, WireFormsOptions } from "./types";
+import { createDialog, type DialogInstance } from "./dialog.js";
+import { wireConfirmForms } from "./forms.js";
+import type { ConfirmOptions, DialogConfig, WireFormsOptions } from "./types.js";
 
-export { activateDialog, claimAutofocus, isModal } from "./activate";
-export type { ActivateOptions } from "./activate";
-export { createDialog, DEFAULT_TEXTS } from "./dialog";
-export type { DialogInstance } from "./dialog";
-export { wireConfirmForms } from "./forms";
-export { wireDialogLinks } from "./links";
-export type { DialogLinkOptions } from "./links";
-export { BD, DIALOG_SIZES, dialogAttrs } from "./markup";
+export { activateDialog, claimAutofocus, isModal } from "./activate.js";
+export type { ActivateOptions } from "./activate.js";
+export { createDialog, DEFAULT_TEXTS } from "./dialog.js";
+export type { DialogInstance } from "./dialog.js";
+export { wireConfirmForms } from "./forms.js";
+export { wireDialogLinks } from "./links.js";
+export type { DialogLinkOptions } from "./links.js";
+export { BD, DIALOG_SIZES, dialogAttrs } from "./markup.js";
 export type {
   ConfirmOptions,
   DialogAttrOptions,
@@ -17,8 +17,8 @@ export type {
   DialogSize,
   DialogTexts,
   WireFormsOptions,
-} from "./types";
-export { upgradeDialogs } from "./upgrade";
+} from "./types.js";
+export { upgradeDialogs } from "./upgrade.js";
 
 // A shared instance for the common case: one app, one dialog. Built on first
 // use so importing the package never touches the DOM. Reach for

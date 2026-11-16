@@ -1,4 +1,4 @@
-import type { DialogAttrOptions, DialogSize } from "./types";
+import type { DialogAttrOptions, DialogSize } from "./types.js";
 /**
  * The class names the stylesheet owns.
  *

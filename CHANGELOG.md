@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented here. This project adheres to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Fixed
+
+- The published **types resolved to `any` under `moduleResolution: "node16"` or `"nodenext"`**. The package is `"type": "module"`, so TypeScript reads `dist/*.d.ts` as ES modules, and their extensionless relative imports (`from "./dialog"`) don't resolve there. Most exports silently became `any`, or failed to compile with `skipLibCheck: false`. Relative imports in `src/` now carry `.js`, which works under `bundler` and `nodenext` alike. ([#1](https://github.com/alexpricedev/billet-dialog/issues/1))
+
 ## [0.3.1]
 
 ### Fixed

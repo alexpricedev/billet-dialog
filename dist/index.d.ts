@@ -1,15 +1,15 @@
-import { type DialogInstance } from "./dialog";
-import type { ConfirmOptions, DialogConfig, WireFormsOptions } from "./types";
-export { activateDialog, claimAutofocus, isModal } from "./activate";
-export type { ActivateOptions } from "./activate";
-export { createDialog, DEFAULT_TEXTS } from "./dialog";
-export type { DialogInstance } from "./dialog";
-export { wireConfirmForms } from "./forms";
-export { wireDialogLinks } from "./links";
-export type { DialogLinkOptions } from "./links";
-export { BD, DIALOG_SIZES, dialogAttrs } from "./markup";
-export type { ConfirmOptions, DialogAttrOptions, DialogConfig, DialogSize, DialogTexts, WireFormsOptions, } from "./types";
-export { upgradeDialogs } from "./upgrade";
+import { type DialogInstance } from "./dialog.js";
+import type { ConfirmOptions, DialogConfig, WireFormsOptions } from "./types.js";
+export { activateDialog, claimAutofocus, isModal } from "./activate.js";
+export type { ActivateOptions } from "./activate.js";
+export { createDialog, DEFAULT_TEXTS } from "./dialog.js";
+export type { DialogInstance } from "./dialog.js";
+export { wireConfirmForms } from "./forms.js";
+export { wireDialogLinks } from "./links.js";
+export type { DialogLinkOptions } from "./links.js";
+export { BD, DIALOG_SIZES, dialogAttrs } from "./markup.js";
+export type { ConfirmOptions, DialogAttrOptions, DialogConfig, DialogSize, DialogTexts, WireFormsOptions, } from "./types.js";
+export { upgradeDialogs } from "./upgrade.js";
 export declare const Dialog: {
     /**
      * Configure the shared instance before first use. Calling this after the
