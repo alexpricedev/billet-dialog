@@ -1,4 +1,4 @@
-import { activateDialog } from "./activate";
+import { activateDialog } from "./activate.js";
 
 /*
  * Dialog routes: open a modal over the page instead of loading a new one.

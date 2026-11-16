@@ -1,5 +1,5 @@
-import type { DialogInstance } from "./dialog";
-import type { WireFormsOptions } from "./types";
+import type { DialogInstance } from "./dialog.js";
+import type { WireFormsOptions } from "./types.js";
 
 const submitForm = (
   form: HTMLFormElement,

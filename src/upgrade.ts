@@ -1,4 +1,4 @@
-import { activateDialog } from "./activate";
+import { activateDialog } from "./activate.js";
 
 const SELECTOR = "dialog[data-bd-root][open]";
 
